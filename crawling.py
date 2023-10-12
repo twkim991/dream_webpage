@@ -5,7 +5,6 @@ import time
 import asyncio
 import pymysql
 import sys
-import threading
 import re
 
 
@@ -13,13 +12,14 @@ import re
 
 
 # 전역변수 선언 및 초기화
-URL = "https://m.bunjang.co.kr/products/237939672"
-LISTURL = "https://m.bunjang.co.kr/categories/600200010?order=date"
+LISTURL = "https://web.joongna.com/search?category=161"
 NOWPAGE = 1
 
 # Chrome 옵션 설정
 options = webdriver.ChromeOptions()
-# options.add_argument("headless")
+options.add_argument("headless")
+options.add_argument("disable-gpu")
+options.add_argument("--disable-extensions")
 
 # 크롬드라이버 실행
 driver = webdriver.Chrome(options=options)
@@ -41,34 +41,24 @@ class WebPage:
         self.price = price
         self.text = text
         self.mcnt=0
-    @staticmethod
-    def MakeWebPage(url,cpage):
-        try:
-            title = cpage.title.text
-            atags = cpage.find_all("a")
-            links=WebPage.ExtractionUrls(atags)
-        except:
-            return None
-        else:
-            return WebPage(url,title,cpage.text,links)
     
 
 
 
 
 # 수집하는 함수가 주기적으로 페이지를 수집할 수 있게 하기위한 함수 원래는 후보에 url 저장하는 기능도 같이 있었는데 나는 분리하도록 하겠음
-async def Collectdata(conn):
-    while(True):
-        url,platform = sql.GetCandidate(conn)
+async def Collectdata(conn, start):
+    for i in range(10000000000):
+        url,platform = sql.GetCandidate(conn, start)
         if url == '':
             break;
         # print(url,platform)
         res,imgs = await Collect(url, platform)
-        if res != None:
+        # print(res.text,imgs)
+        if res != None and res != '':
             sql.AddData(conn, res)
             sql.AddImg(conn, url, imgs)
-        elif res == '':
-            print("이미 삭제된 상품입니다")
+        sql.DeleteCandidate(conn, url)
 
 
 
@@ -83,104 +73,174 @@ async def Collect(url, platform):
         # 웹 페이지가 로드될 때까지 대기
         driver.implicitly_wait(10)
 
-        #이미 삭제된 상품인지 확인
-        try:
-            rawdeletedcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__FailedProductWrapper")]')
-            deletedcheck = rawdeletedcheck.text
-            return "",""
-        except NoSuchElementException:
-            print("")
-        # 이미 팔린 상품인지 확인
-        print(1)
-        issoldout = 0
-        try:
-            rawsoldoutcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__SoldoutTitle")]')
-            soldoutcheck = rawsoldoutcheck.text
-            issoldout = 1
-            url = url + '?original=1'
-            driver.get(url)
-            print('이건 이미 팔렸어')
-        except NoSuchElementException:
+        if platform == 'bunjang':
+            #이미 삭제된 상품인지 확인
+            try:
+                rawdeletedcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__FailedProductWrapper")]')
+                print("이건 이미 삭제됐어")
+                deletedcheck = rawdeletedcheck.text
+                return "",""
+            except NoSuchElementException:
+                print("")
+
+            # 이미 팔린 상품인지 확인
             issoldout = 0
-            print('이건 아직 안팔림')
+            try:
+                rawsoldoutcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__SoldoutTitle")]')
+                soldoutcheck = rawsoldoutcheck.text
+                issoldout = 1
+                url = url + '?original=1'
+                driver.get(url)
+                print('이건 이미 팔렸어')
+            except NoSuchElementException:
+                issoldout = 0
+                print('이건 아직 안팔림')
 
-        # 데이터 수집
-        rawtitle = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductSummarystyle__Name")]')
-        title = [element.text for element in rawtitle][0]
-        # print(title)
+            # 데이터 수집
+            rawtitle = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductSummarystyle__Name")]')
+            title = [element.text for element in rawtitle][0]
+            # print(title)
 
-        rawprice = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductSummarystyle__Price")]//*[contains(@class,"ProductSummarystyle__Price")]')
-        price_str = [element.text for element in rawprice][0]
-        price = re.sub(r'[^0-9]', '', price_str)
-        # print(price)
+            rawprice = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductSummarystyle__Price")]//*[contains(@class,"ProductSummarystyle__Price")]')
+            price_str = [element.text for element in rawprice][0]
+            price = re.sub(r'[^0-9]', '', price_str)
+            # print(price)
 
-        rawtext = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductInfostyle__DescriptionContent")]/p')
-        text = [element.text for element in rawtext][0]
-        # print(text)
+            rawtext = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductInfostyle__DescriptionContent")]/p')
+            text = [element.text for element in rawtext][0]
+            # print(text)
 
-        rawimg = driver.find_elements(By.XPATH, '//*[contains(@class,"Productsstyle__ProductImageWrapper")]/div/div/img')
-        imgs = [element.get_attribute('src') for element in rawimg]
-        # print(imgs)
+            rawimg = driver.find_elements(By.XPATH, '//*[contains(@class,"Productsstyle__ProductImageWrapper")]/div/div/img')
+            imgs = [element.get_attribute('src') for element in rawimg]
+            return WebPage(url,platform,issoldout,title,price,text), imgs
+            # print(imgs)
+        elif platform == 'joongna':
+            #제목으로 이미 삭제된 상품인지 확인
+            rawtitle = driver.find_elements(By.XPATH, '//h1')
+            title = [element.text for element in rawtitle][0]
+            # print(title)
+            if '상품은 삭제된 상태입니다' in title or '판매보류된 상품입니다' in title or '이용제한된 회원의 상품입니다.' in title or '현재 거래가 불가능한 회원의 상품입니다.' in title or '탈퇴한 회원의 상품입니다.' in title:
+                print("\n\n이건 이미 삭제됐어")
+                return "",""
+
+            # 이미 팔린 상품인지 확인
+            issoldout = 0
+            try:
+                rawsoldoutcheck = driver.find_element(By.XPATH, '//div[contains(@class,"items-start")]/div[1]/div[1]/div[1]/div[1]/div/div')
+                soldoutcheck = rawsoldoutcheck.text
+                issoldout = 1
+                print('\n\n이건 이미 팔렸어')
+            except NoSuchElementException:
+                issoldout = 0
+                print('\n\n이건 아직 안팔림')
+
+            rawprice = driver.find_elements(By.XPATH, '//h1/following-sibling::div/div')
+            price_str = [element.text for element in rawprice][0]
+            price = re.sub(r'[^0-9]', '', price_str)
+            # print(price)
+
+            text = ""
+            rawtext = driver.find_elements(By.XPATH, '//article/p')
+            if rawtext != []:
+                text = [element.text for element in rawtext][0]
+            # print(text)
+
+            rawimg = driver.find_elements(By.XPATH, '//div[contains(@class,"items-start")]//img')
+            rawimgs = [element.get_attribute('src') for element in rawimg]
+            imgs = []
+            for img in rawimgs:
+                if 'https://web.joongna.com/assets/' not in img:
+                    imgs.append(img)
+            # print(imgs)
+            return WebPage(url,platform,issoldout,title,price,text), imgs
     finally:
-        print(2)
-        return WebPage(url,platform,issoldout,title,price,text), imgs
+        print("\n\n데이터 수집 완료! 처리중...\n\n")
+
+
 
 
 
 async def Collecturl(conn):
     global NOWPAGE
+    global LISTURL
     driver.get(LISTURL)
 
-    while True:
+
+    if 'm.bunjang.co.kr' in LISTURL:
+        for i in range(10000000000):
+            # 웹 페이지가 로드될 때까지 대기
+            await asyncio.sleep(3)
+            driver.implicitly_wait(10)
+
+            # #url 수집
+            rawdata = driver.find_elements(By.TAG_NAME, 'a')
+            rawlinks = [element.get_attribute('href') for element in rawdata]
+            # print(rawlinks)
+            links = []
+            for i,link in enumerate(rawlinks):
+                if link is not None and '/products/' in link and 'https://m.bunjang.co.kr/products/new' not in link:
+                    index = link.find("?")
+                    if(index != -1):
+                        link = link[:index]
+                    links.append(link)
+            # print(links)
+            # print(links[0],links[1],links[2])
+            #수집한 링크들을 후보 db에 저장
+            if links != []:
+                sql.AddCandidate(conn, links, 'bunjang')
+
+            # 현재 페이지가 몇번째인지 체크하고 마지막페이지면 종료함
+            pagingicons = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a')
+            icons = [btn.value_of_css_property('background') for btn in pagingicons]
+            nextpagenum = 1
+            for i,icon in enumerate(icons):
+                if 'rgb(255, 80, 88)' in icon:
+                    nextpagenum = i+1
+            print(NOWPAGE)
+            nexticons = driver.find_elements(By.XPATH, f'//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a[{nextpagenum+1}]')
+            nexticon = [ btn.value_of_css_property('visibility') for btn in nexticons]
+            # print(nexticon[0])
+            if nexticon[0] == 'visible':
+                NOWPAGE = NOWPAGE + 1
+                driver.find_element(By.XPATH, f'//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a[{nextpagenum+1}]').click()
+            else:
+                print("마지막 페이지에 도달했습니다. 크롤링을 종료합니다.")
+                break;
+    elif 'web.joongna.com' in LISTURL:
+        for i in range(10000000000):
         # 웹 페이지가 로드될 때까지 대기
-        await asyncio.sleep(3)
-        driver.implicitly_wait(10)
+            await asyncio.sleep(3)
+            driver.implicitly_wait(10)
 
-        # #url 수집
-        rawdata = driver.find_elements(By.TAG_NAME, 'a')
-        rawlinks = [element.get_attribute('href') for element in rawdata]
-        # print(rawlinks)
-        links = []
-        for i,link in enumerate(rawlinks):
-            if link is not None and '/products/' in link and 'https://m.bunjang.co.kr/products/new' not in link:
-                index = link.find("?")
-                if(index != -1):
-                    link = link[:index]
-                links.append(link)
-        # print(links)
-        # print(links[0],links[1],links[2])
-        #수집한 링크들을 후보 db에 저장
-        if links != []:
-            sql.AddCandidate(conn, links)
+            # #url 수집
+            rawdata = driver.find_elements(By.TAG_NAME, 'a')
+            rawlinks = [element.get_attribute('href') for element in rawdata]
+            # print(rawlinks)
+            links = []
+            for i,link in enumerate(rawlinks):
+                if link is not None and '/product/' in link:
+                    index = link.find("?")
+                    if(index != -1):
+                        link = link[:index]
+                    links.append(link)
 
-        # 현재 페이지가 몇번째인지 체크하고 마지막페이지면 종료함
-        pagingicons = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a')
-        icons = [btn.value_of_css_property('background') for btn in pagingicons]
-        nextpagenum = 1
-        for i,icon in enumerate(icons):
-            if 'rgb(255, 80, 88)' in icon:
-                nextpagenum = i+1
-        print(NOWPAGE)
-        nexticons = driver.find_elements(By.XPATH, f'//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a[{nextpagenum+1}]')
-        nexticon = [ btn.value_of_css_property('visibility') for btn in nexticons]
-        print(nexticon[0])
-        if nexticon[0] == 'visible':
+            #수집한 링크들을 후보 db에 저장
+            if links != []:
+                sql.AddCandidate(conn, links, 'joongna')
+
+            # 현재 페이지가 몇번째인지 체크하고 마지막페이지면 종료함
+            try:
+                nexticon = driver.find_element(By.XPATH, '//main/div[1]/div[2]/div[4]/ul/li[contains(@class,"bg-jngreen/80")]/following-sibling::li')
+            except NoSuchElementException:
+                print("마지막 페이지입니다. 장비를 정지합니다.")
+                break;
             NOWPAGE = NOWPAGE + 1
-            driver.find_element(By.XPATH, f'//*[@id="root"]/div/div/div[4]/div/div[last()]/div/a[{nextpagenum+1}]').click()
-        else:
-            print("마지막 페이지에 도달했습니다. 크롤링을 종료합니다.")
-            break;
+            print(NOWPAGE)
+            driver.get(LISTURL + f'&page={NOWPAGE}')
+                  
 
         # console_log(PAGING-1,links);
         
-
-
-
-
-# 수집한 페이지가 무엇인지 보여주게 하는 함수
-def console_log(cnt,links):
-    # print("{0}번째 페이지 {1} 수집".format(cnt,links))
-    print("{0}번째 페이지 수집".format(cnt))
 
 
 
@@ -189,7 +249,7 @@ def console_log(cnt,links):
 class sql:
     # 후보 링크들을 추가하는 함수
     @staticmethod
-    def AddCandidate(conn, links):
+    def AddCandidate(conn, links, platform):
         db = conn.cursor();
         # print(links)
         for url in links:
@@ -197,7 +257,7 @@ class sql:
             # 후보 링크가 데이터 db에 있는지, 후보 db에 있는지 체크
             if sql.CheckData(conn, 'joonggo_data', url)==0 or sql.CheckData(conn, 'candidate', url)==0:
                 continue
-            qry = f"INSERT INTO Candidate(url) values('{url}')"
+            qry = f"INSERT INTO Candidate(url,platform) values('{url}', '{platform}')"
             print(qry)
             try:
                 db.execute(qry)
@@ -209,27 +269,34 @@ class sql:
 
     # 후보에 있는 url의 페이지를 크롤링하기 위해 후보 db에서 가져오는 함수
     @staticmethod
-    def GetCandidate(conn):
+    def GetCandidate(conn, start):
         db = conn.cursor();
-        qry = f"SELECT id FROM Candidate LIMIT 1;"
-        db.execute(qry)
-        id = db.fetchone()
-        qry = f"SELECT url,platform FROM Candidate WHERE id={id[0]};"
+        qry = f"SELECT url,platform,id FROM Candidate WHERE id>{start} LIMIT 1;"
         db.execute(qry)
         row = db.fetchone()
-        # print(row)
+        print(f"\n\n{row[2]}번 후보 데이터 수집 시작!")
         if row:
-            # qry = f"DELETE FROM Candidate WHERE id={id[0]};"
-            # db.execute(qry);
-            # conn.commit();
             return row[0], row[1]
         else:
             return "",""
+
+    @staticmethod
+    def DeleteCandidate(conn, url):
+        db = conn.cursor();
+        qry = f"DELETE FROM Candidate WHERE url='{url}';"
+        print(qry)
+        print(f"\n\n{url}데이터 수집 완료! 후보DB에서 삭제!")
+        db.execute(qry);
+        conn.commit();
 
     # 크롤링한 페이지를 data db에 저장하는 함수
     @staticmethod
     def AddData(conn, data):
         db = conn.cursor();
+        data.title = data.title.replace("'", "''")
+        data.title = data.title.replace('""', '""')
+        data.text = data.text.replace("'", "''")
+        data.text = data.text.replace('""', '""')
         qry = f"INSERT IGNORE INTO joonggo_data(url, platform, issoldout, title, price, text, mcnt) values('{data.url}', '{data.platform}', '{data.issoldout}', '{data.title}', '{data.price}', '{data.text}', {data.mcnt})"
         # print(qry)
         db.execute(qry)
@@ -280,9 +347,11 @@ async def run():
         if sys.argv[1] == 'url':
             await Collecturl(connect)
         elif sys.argv[1] == 'data':
-            await Collectdata(connect)
+            await Collectdata(connect, 95000)
         elif sys.argv[1] == 'test':
-            sql.Checkdb(connect)
+            text = "나는 '이거'를 고치고싶어"
+            text = text.replace("'","''")
+            print(text)
     finally:
         # WebDriver 종료
         driver.quit()
@@ -291,23 +360,5 @@ async def run():
 
 asyncio.run(run())
   
-  # 해야하는 일 첫째. url 크롤링 부분 함수 완성시키는것 둘쨰. 번장이랑 다른 사이트 구분짓기
-
-#   class Worker(threading.Thread):
-#     def __init__(self, name):
-#         super().__init__()
-#         self.name = name            # thread 이름 지정
-
-#     def run(self):
-#         print("sub thread start ", threading.currentThread().getName())
-#         time.sleep(3)
-#         print("sub thread end ", threading.currentThread().getName())
-
-
-# print("main thread start")
-# for i in range(5):
-#     name = "thread {}".format(i)
-#     t = Worker(name)                # sub thread 생성
-#     t.start()                       # sub thread의 run 메서드를 호출
-
-# print("main thread end")
+# 번개장터는 300페이지를 넘기면 데이터 로딩이 안된다. 중고나라는 125페이지를 넘기면 안된다
+# 나머지는 몰루

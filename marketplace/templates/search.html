@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>Search result</title>
+</head>
+<body>
+<div>
+    <h1> result list</h1>
+    {% for joonggo in joonggo_list%}
+        <ul>
+        {{ joonggo.url }}
+        {{ joonggo.platform }}
+        {{ joonggo.issoldout }}
+        {{ joonggo.title }}
+        {{ joonggo.price }}
+        {{ joonggo.text }}
+        </ul>
+    {% endfor %}
+    
+    {{ joonggo_list.0.url }} {{ joonggo_list.0.title}}
+    {{ joonggo_list.1.title }} {{ joonggo_list.1.title}}
+</div>
+</body>
+</html>
+
+
