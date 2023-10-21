@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+import joblib
 import time
 import asyncio
 import pymysql
@@ -12,7 +13,7 @@ import re
 
 
 # 전역변수 선언 및 초기화
-LISTURL = "https://web.joongna.com/search?category=161"
+LISTURL = "https://web.joongna.com/store/4355739"
 NOWPAGE = 1
 
 # Chrome 옵션 설정
@@ -27,6 +28,9 @@ driver = webdriver.Chrome(options=options)
 cnt = 0
 connect = None
 db = None
+# 저장된 모델 불러오기
+loaded_model = joblib.load('ad_checker.pkl')
+loaded_vectorizer = joblib.load('vectorizer.pkl')
 
 
 
@@ -40,7 +44,6 @@ class WebPage:
         self.title = title
         self.price = price
         self.text = text
-        self.mcnt=0
     
 
 
@@ -108,7 +111,7 @@ async def Collect(url, platform):
 
             rawtext = driver.find_elements(By.XPATH, '//*[contains(@class,"ProductInfostyle__DescriptionContent")]/p')
             text = [element.text for element in rawtext][0]
-            # print(text)
+            print(text)
 
             rawimg = driver.find_elements(By.XPATH, '//*[contains(@class,"Productsstyle__ProductImageWrapper")]/div/div/img')
             imgs = [element.get_attribute('src') for element in rawimg]
@@ -160,6 +163,7 @@ async def Collect(url, platform):
 
 
 
+# 웹페이지에서 후보 url을 수집하는 함수
 async def Collecturl(conn):
     global NOWPAGE
     global LISTURL
@@ -245,7 +249,152 @@ async def Collecturl(conn):
 
 
 
+# db에 저장되어있던 링크의 중고물품이 팔렸는지 확인하는 함수
+async def CheckIssoldout(conn):
+    datas = sql.GetData(conn)
+    for i, data in enumerate(datas):
+        url = data[0]
+        platform = data[1]
+        issoldout = await Check(conn, url, platform)
+        if issoldout == 0:
+            pass;
+        else:
+            sql.UpdateIssoldout(conn,url,issoldout)
+        
 
+    if url == '':
+        return;
+
+
+
+
+
+# 링크의 웹페이지에 들어가서 팔렸는지 직접 체크하는 함수
+async def Check(conn, url, platform):
+    try:
+        driver.get(url)
+        await asyncio.sleep(3)
+
+        # 웹 페이지가 로드될 때까지 대기
+        driver.implicitly_wait(10)
+
+        if platform == 'bunjang':
+            #이미 삭제된 상품인지 확인
+            try:
+                rawdeletedcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__FailedProductWrapper")]')
+                print("이건 이미 삭제됐어")
+                deletedcheck = rawdeletedcheck.text
+                return 1
+            except NoSuchElementException:
+                print("")
+
+            # 이미 팔린 상품인지 확인
+            issoldout = 0
+            try:
+                rawsoldoutcheck = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__SoldoutTitle")]')
+                soldoutcheck = rawsoldoutcheck.text
+                issoldout = 1
+                url = url + '?original=1'
+                driver.get(url)
+                print('이건 이미 팔렸어')
+            except NoSuchElementException:
+                issoldout = 0
+                print('이건 아직 안팔림')
+            return issoldout
+        elif platform == 'joongna':
+            #제목으로 이미 삭제된 상품인지 확인
+            rawtitle = driver.find_elements(By.XPATH, '//h1')
+            title = [element.text for element in rawtitle][0]
+            # print(title)
+            if '상품은 삭제된 상태입니다' in title or '판매보류된 상품입니다' in title or '이용제한된 회원의 상품입니다.' in title or '현재 거래가 불가능한 회원의 상품입니다.' in title or '탈퇴한 회원의 상품입니다.' in title:
+                print("\n\n이건 이미 삭제됐어")
+                return 1
+
+            # 이미 팔린 상품인지 확인
+            issoldout = 0
+            try:
+                rawsoldoutcheck = driver.find_element(By.XPATH, '//div[contains(@class,"items-start")]/div[1]/div[1]/div[1]/div[1]/div/div')
+                soldoutcheck = rawsoldoutcheck.text
+                issoldout = 1
+                print('\n\n이건 이미 팔렸어')
+            except NoSuchElementException:
+                issoldout = 0
+                print('\n\n이건 아직 안팔림')
+            return issoldout
+    finally:
+        print("\n\n판매여부 체크 완료!\n\n")
+
+
+
+
+
+# 임시 함수
+async def temp(conn):
+    global NOWPAGE
+    global LISTURL
+    driver.get(LISTURL)
+
+
+    if 'm.bunjang.co.kr' in LISTURL:
+        # 웹 페이지가 로드될 때까지 대기
+        await asyncio.sleep(3)
+        driver.implicitly_wait(10)
+
+        
+
+        # #url 수집
+        rawdata = driver.find_elements(By.TAG_NAME, 'a')
+        rawlinks = [element.get_attribute('href') for element in rawdata]
+        # print(rawlinks)
+        links = []
+        for i,link in enumerate(rawlinks):
+            if link is not None and '/products/' in link and 'https://m.bunjang.co.kr/products/new' not in link:
+                index = link.find("?")
+                if(index != -1):
+                    link = link[:index]
+                links.append(link)
+        # print(links)
+        # print(links[0],links[1],links[2])
+        #수집한 링크들을 후보 db에 저장
+        if links != []:
+            sql.AddCandidate(conn, links, 'bunjang')
+
+    elif 'web.joongna.com' in LISTURL:
+        # 웹 페이지가 로드될 때까지 대기
+        await asyncio.sleep(3)
+        driver.implicitly_wait(10)
+
+        while(True):
+            try:
+                rawplus = driver.find_elements(By.XPATH, '//button[text()="더보기"]')
+                plus = [element.text for element in rawplus][0]
+                print(plus)
+                driver.find_element(By.XPATH, '//button[text()="더보기"]').click()
+                await asyncio.sleep(3)
+            except:
+                break;
+        
+        # #url 수집
+        rawdata = driver.find_elements(By.TAG_NAME, 'a')
+        rawlinks = [element.get_attribute('href') for element in rawdata]
+        # print(rawlinks)
+        links = []
+        for i,link in enumerate(rawlinks):
+            if link is not None and '/product/' in link:
+                index = link.find("?")
+                if(index != -1):
+                    link = link[:index]
+                links.append(link)
+
+        #수집한 링크들을 후보 db에 저장
+        if links != []:
+            sql.AddCandidate(conn, links, 'joongna')
+
+
+
+
+
+# DB를 조작하는 각종 함수들을 모아놓은 클래스
 class sql:
     # 후보 링크들을 추가하는 함수
     @staticmethod
@@ -297,7 +446,16 @@ class sql:
         data.title = data.title.replace('""', '""')
         data.text = data.text.replace("'", "''")
         data.text = data.text.replace('""', '""')
-        qry = f"INSERT IGNORE INTO joonggo_data(url, platform, issoldout, title, price, text, mcnt) values('{data.url}', '{data.platform}', '{data.issoldout}', '{data.title}', '{data.price}', '{data.text}', {data.mcnt})"
+        
+
+        # 샘플 데이터 예측하기
+        text1 = [data.text]
+        title1 = [data.title]
+        combined_text = [text + ' ' + title for text, title in zip(text1, title1)]
+        X_sample = loaded_vectorizer.transform(combined_text)
+        predictions = loaded_model.predict(X_sample.toarray())
+        isad = predictions[0]
+        qry = f"INSERT IGNORE INTO joonggo_data(url, platform, issoldout, title, price, text, isad) values('{data.url}', '{data.platform}', '{data.issoldout}', '{data.title}', '{data.price}', '{data.text}', {isad})"
         # print(qry)
         db.execute(qry)
         conn.commit();
@@ -324,6 +482,38 @@ class sql:
         else:
             return -1
 
+    # 팔렸는지 안팔렸는지 체크하기 위해서 데이터 가져오는 함수
+    @staticmethod
+    def GetData(conn):
+        db = conn.cursor();
+        qry = f"SELECT url,platform FROM joonggo_data WHERE issoldout = 0 LIMIT 10"
+        db.execute(qry)
+        rows = db.fetchall()
+        print(rows)
+        print(f"\n\n{len(rows)}개의 데이터를 DB에서 가져와 검수 시작")
+        if rows:
+            return rows
+        else:
+            return ""
+
+    # issoldout 수정
+    @staticmethod
+    def UpdateIssoldout(conn, url, issoldout):
+        db = conn.cursor();
+        qry = f"UPDATE joonggo_data SET issoldout = '{issoldout}' WHERE url = '{url}'"
+        db.execute(qry)
+        print(f"\n\n{url}은 현재는 팔린 상태입니다.")
+
+
+
+
+
+async def temp2(conn):
+    db = conn.cursor();
+    qry = f"SELECT img_url FROM dream_joonggo.joonggo_img WHERE url = 'https://m.bunjang.co.kr/products/201600871'"
+    db.execute(qry)
+    row = db.fetchall()
+    print(row)
 
 
 
@@ -347,11 +537,11 @@ async def run():
         if sys.argv[1] == 'url':
             await Collecturl(connect)
         elif sys.argv[1] == 'data':
-            await Collectdata(connect, 95000)
+            await Collectdata(connect, 0)
+        elif sys.argv[1] == 'check':
+            await CheckIssoldout(connect)
         elif sys.argv[1] == 'test':
-            text = "나는 '이거'를 고치고싶어"
-            text = text.replace("'","''")
-            print(text)
+            await temp2(connect)
     finally:
         # WebDriver 종료
         driver.quit()
