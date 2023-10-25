@@ -6992,3 +6992,8 @@ header.masthead {
   font-size: 2.2vw;
   word-wrap:break-word;
 }
+
+a {
+  color:#000;
+  text-decoration: none;
+}

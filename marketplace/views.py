@@ -76,12 +76,32 @@ def search(request):
     elif request.method == 'GET':
         cat = request.GET.get('category')
         print(cat)
-        
-        category = '데스크탑/본체'
+        category = ''
+        if cat == "001":
+            category = '데스크탑/본체'
+        elif cat == "002":
+            category = '모니터'
+        elif cat == "003":
+            category = 'CPU/메인보드'
+        elif cat == "004":
+            category = '메모리/VGA'
+        elif cat == "005":
+            category = 'HDD/SDD/ODD'
+        elif cat == "006":
+            category = "케이스/파워/쿨러"
+        elif cat == "007":
+            category = "프린터/복합기/잉크/토너"
+        elif cat == "008":
+            category = '소모품'
+        else:
+            category = 'all'
         # db에서 중고거래 데이터를 가져온다
         try:
             db = connection.cursor()
-            qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE maincategory = '{category}' OR subcategory = '{category}' LIMIT 1000;"
+            if category == 'all':
+                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data LIMIT 1000;"
+            else:
+                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE maincategory = '{category}' OR subcategory = '{category}' LIMIT 1000;"
             db.execute(qry)
             data = db.fetchall()
             # print(data)
