@@ -75,6 +75,9 @@
 <script type = 'text/javascript'>
     // console.log('{{ joonggo_list }}');
     function toggleButton() {
+        
+        var temp = document.querySelectorAll('.container ul:not([data-check="1"])').length
+        console.log(temp)
         var button = document.getElementById('toggleButton');
         button.classList.toggle('button-on'); // 'button-on' 클래스 토글
         var buttonState = (button.classList.contains('button-on')) ? 'on' : 'off';
@@ -86,37 +89,47 @@
                 var isadElement = ul.querySelector('.isad');
                 if (isadElement && isadElement.textContent.trim() === '1') {
                     ul.style.display = 'none';
+                    ul.setAttribute('data-check', '1');
                 }
+            totalPosts = document.querySelectorAll('.container ul:not([data-check="1"])').length;
+            totalPages = Math.ceil(totalPosts / postsPerPage);
+            init();
             });
         } else {
             // 버튼 상태가 'off'일 때 모든 <ul> 태그를 보여줍니다.
             var ulElements = document.querySelectorAll('.container ul');
             ulElements.forEach(function(ul) {
                 ul.style.display = 'block';
+                ul.setAttribute('data-check', '0');
             });
+            totalPosts = document.querySelectorAll('.container ul:not([data-check="1"])').length;
+            totalPages = Math.ceil(totalPosts / postsPerPage);
+            init();
         }
     }
 
     // 전체 글의 개수
-    const totalPosts = document.querySelectorAll('.container ul').length;
+    var totalPosts = document.querySelectorAll('.container ul').length;
     // 한 페이지에 보여줄 글의 개수
     const postsPerPage = 20;
     // 전체 페이지 수 계산
-    const totalPages = Math.ceil(totalPosts / postsPerPage);
+    var totalPages = Math.ceil(totalPosts / postsPerPage);
     // 현재 선택된 페이지 초기값 설정
     let currentPage = 1;
     // 초기화 함수 호출
     init();
 
+
     function init() {
     showPosts(currentPage); // 현재 페이지의 글 표시
     setupPagination(); // 페이징 링크 생성 및 이벤트 처리 설정
+    updateActiveLink();
     }
 
     function showPosts(page) {
     const start = (page -1) * postsPerPage; // 시작 인덱스 계산
     const end = start + postsPerPage; // 종료 인덱스 계산
-    const allPosts = document.querySelectorAll('.container ul');
+    const allPosts = document.querySelectorAll('.container ul:not([data-check="1"])');
     
     allPosts.forEach((post, index) => { 
         if (index >= start && index < end) { 

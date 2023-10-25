@@ -85,32 +85,32 @@ async def run():
     if sys.argv[1] == 'create':  
         try:
             texts,titles,labels = await GetDataset(connect)
-            # 텍스트 데이터, 제목 데이터, 해당 클래스(광고글/일반글)를 가진 데이터셋을 준비합니다.
+            # 텍스트 데이터, 제목 데이터, 해당 클래스(광고글/일반글)를 가진 데이터셋을 준비.
 
             # print(texts[0])
             # print(titles[0])
-            # 텍스트와 제목을 합칩니다.
+            # 텍스트와 제목을 합친다.
             combined_texts = [text + ' ' + title for text, title in zip(texts, titles)]
 
-            # 데이터셋을 랜덤하게 섞습니다.
+            # 데이터셋을 랜덤하게 섞는다.
             combined_texts_shuffled, labels_shuffled = shuffle(combined_texts, labels)
 
-            # 텍스트와 제목 데이터를 벡터화합니다.
+            # 텍스트와 제목 데이터를 벡터화
             vectorizer = TfidfVectorizer()
             X = vectorizer.fit_transform(combined_texts_shuffled)
 
-            # 학습용과 테스트용으로 데이터셋을 분리합니다.
+            # 학습용과 테스트용으로 데이터셋을 분리
             X_train, X_test, y_train, y_test = train_test_split(X, labels_shuffled)
 
-            # 나이브 베이즈 모델을 생성하고 학습합니다.
+            # 나이브 베이즈 모델을 생성하고 학습
             naive_bayes = MultinomialNB()
             naive_bayes.fit(X_train.toarray(), y_train)
 
-            # 모델의 성능을 평가합니다.
+            # 모델 성능 평가
             accuracy = naive_bayes.score(X_test.toarray(), y_test)
             print("Accuracy:", accuracy)
             
-            # 모델 저장하기
+            # 모델 저장
             joblib.dump(naive_bayes, 'ad_checker.pkl')
             joblib.dump(vectorizer,'vectorizer.pkl')
 
@@ -134,6 +134,34 @@ async def run():
         predictions = loaded_model.predict(X_sample.toarray())
 
         print("Predictions:", predictions)
+    
+    elif sys.argv[1] == 'test':  
+        try:
+            texts,titles,labels = await GetDataset(connect)
+            # 텍스트 데이터, 제목 데이터, 해당 클래스(광고글/일반글)를 가진 데이터셋을 준비.
+
+            # 저장된 모델 불러오기
+            loaded_model = joblib.load('ad_checker.pkl')
+            loaded_vectorizer = joblib.load('vectorizer.pkl')
+
+            # print(texts[0])
+            # print(titles[0])
+            # 텍스트와 제목을 합친다.
+            combined_texts = [text + ' ' + title for text, title in zip(texts, titles)]
+
+            # 데이터셋을 랜덤하게 섞는다.
+            combined_texts_shuffled, labels_shuffled = shuffle(combined_texts, labels)
+
+            # 텍스트와 제목 데이터를 벡터화
+            X = loaded_vectorizer.transform(combined_texts_shuffled)
+        
+            # 모델 성능 평가
+            accuracy = loaded_model.score(X.toarray(), labels_shuffled)
+            print("Accuracy:", accuracy)
+
+            
+        finally:
+            connect.close()
 
 
 asyncio.run(run())

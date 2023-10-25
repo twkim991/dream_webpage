@@ -14,59 +14,86 @@
         <!-- Google fonts-->
         <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css" />
         <!-- Core theme CSS (includes Bootstrap)-->
-        <link href="/static/marketplace/css/styles.css?after" rel="stylesheet" />
+        <link href="/static/marketplace/css/styles.css" rel="stylesheet" />
     </head>
     <body>
-        <!-- Navigation-->
-        <nav class="navbar navbar-light bg-light static-top">
-            <div class="container">
-                <a class="navbar-brand" href="#!">중고거래 검색엔진</a>
-                <!-- <a class="btn btn-primary" href="#signup">Sign Up</a> -->
-            </div>
-        </nav>
         <!-- Masthead-->
         <header class="masthead">
-            <div class="container position-relative">
-                <div class="row justify-content-center">
-                    <div class="col-xl-6">
-                        <div class="text-center text-white">
-                            <!-- Page heading-->
-                            <h1 class="mb-5">원하는 키워드로 중고거래글을 검색하세요</h1>
-                            <!-- Signup form-->
-                            <!-- * * * * * * * * * * * * * * *-->
-                            <!-- * * SB Forms Contact Form * *-->
-                            <!-- * * * * * * * * * * * * * * *-->
-                            <!-- This form is pre-integrated with SB Forms.-->
-                            <!-- To make this form functional, sign up at-->
-                            <!-- https://startbootstrap.com/solution/contact-forms-->
-                            <!-- to get an API token!-->
-                            <form action="{% url 'search' %}" method="POST">
-                                <!-- Email address input-->
-                                {% csrf_token %}
-                                <div class="row">
-                                    <div class="col">
-                                        <input class="form-control form-control-lg" id="keyword" name = "keyword" type="text" placeholder="Search" data-sb-validations="required,email" />
-                                    </div>
-                                    <div class="col-auto"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">검색</button></div>
-                                </div>
-                                <!-- Submit error message-->
-                                <!---->
-                                <!-- This is what your users will see when there is-->
-                                <!-- an error submitting the form-->
-                                <div class="d-none" id="submitErrorMessage"><div class="text-center text-danger mb-3">Error sending message!</div></div>
-                            </form>
+            <div class="topbar">
+                <div class="headerdiv">
+                    <!-- Page heading-->
+                    <h1 class="headerh1">당근</h1>
+                    <img class = "headericon" src="../static/marketplace/assets/cart.svg">
+                    <h1 class="headerh1">나라</h1>
+                </div>
+            </div>
+            <div>
+                <form action="{% url 'search' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="searchdiv">
+                        <div class="searchbutton"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">검색</button></div>
+                        <div class="searchinputdiv">
+                            <input class="form-control form-control-lg" id="keyword" name = "keyword" type="text" placeholder="Search" data-sb-validations="required,email" />
                         </div>
+                    </div>
+                </form>
+            </div>
+        </header>
+        <!-- Post Grid-->
+        <section>
+            <div class="container">
+                <div>
+                    <img class="seemoreicon" src="../static/marketplace/assets/more.png">
+                    <span> 전체글 보기 </span>
+                </div>
+                <div class="postdiv">
+                    <!-- 대충 글 목록 중 일부를 보여줌(리스트 형식도 괜찮을까?)-->
+                </div>
+            </div>
+        </section>
+        <!-- Category Grid-->
+        <section class="categorysection features-icons bg-light text-center">
+            <div class="container">
+                <div class="categorydiv">
+                    <div class="categorydivdiv">
+                        <a href="{% url 'search' %}?category=001"><img class="categoryicon" src="../static/marketplace/assets/데스크탑.PNG" ></a>
+                        <p class="categoryp"> 노트북/데스크탑 본체</p>
+                    </div> 
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/monitor.png">
+                        <p class="categoryp"> 모니터</p>
+                    </div> 
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/CPU.png">
+                        <p class="categoryp"> CPU/메인보드</p>
+                    </div> 
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/그래픽카드.svg">
+                        <p class="categoryp"> 메모리/그래픽카드</p>
+                    </div> 
+                </div>
+                <div class="categorydiv">
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/SSD.png">
+                        <p class="categoryp"> HDD/SDD/ODD</p>
+                    </div>
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/파워서플라이.png">
+                        <p class="categoryp"> 쿨러/파워서플라이</p>
+                    </div>
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/키보드마우스.png">
+                        <p class="categoryp"> 주변기기</p>
+                    </div>
+                    <div class="categorydivdiv">
+                        <img class="categoryicon" src="../static/marketplace/assets/ETC.png">
+                        <p class="categoryp"> 기타</p>
                     </div>
                 </div>
             </div>
-        </header>
-        <!-- Category Grid-->
-        <section class="features-icons bg-light text-center">
-            <div class="container">
-            </div>
         </section>
         <!-- Icons Grid-->
-        <section class="features-icons bg-light text-center">
+        <!-- <section class="features-icons bg-light text-center">
             <div class="container">
                 <div class="row">
                     <div class="col-lg-4">
@@ -92,7 +119,7 @@
                     <p class="lead mb-0">각종 중고거래 앱을 한데모아 한번에 검색</p>
                 </div>
             </div>
-        </section>
+        </section> -->
         <!-- Footer-->
         <footer class="footer bg-light">
             <div class="container">
