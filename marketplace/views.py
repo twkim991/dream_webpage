@@ -4,12 +4,31 @@ from .models import JoonggoData, JoonggoImg
 from .forms import KeywordForm
 
 def index(request):
-    #edit
-    joonggo_list = JoonggoData.objects.all()	
-    img_list = JoonggoImg.objects.all()	
-    context = {'joonggo_list': joonggo_list, 'img_list' : img_list}	# list의 정보를 context에 담는다.
- 
-    return render(request,'index.html')
+    joonggo = []
+    try:
+        db = connection.cursor()
+        qry = f"SELECT url, platform, issoldout, title, price FROM dream_joonggo.joonggo_data ORDER BY ID DESC LIMIT 100;"
+        db.execute(qry)
+        data = db.fetchall()
+        # print(data)
+        connection.close()
+
+        for res in data:
+            url = res[0]
+            # print(imgdata_dict.get(url, []))
+            row = {'url': url,
+                'platform': res[1],
+                'issoldout': res[2],
+                'title': res[3],
+                'price': res[4]}
+            joonggo.append(row)
+    except Exception as err:
+        connection.rollback()
+        print("에러 발생")
+        print(err)
+        
+    # print(joonggo[0])
+    return render(request, 'index.html', {'joonggo_list': joonggo})
 
 def search(request):
     joonggo = []

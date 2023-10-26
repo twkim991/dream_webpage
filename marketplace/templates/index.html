@@ -43,11 +43,29 @@
         <section>
             <div class="container">
                 <div>
-                    <img class="seemoreicon" src="../static/marketplace/assets/more.png">
-                    <span> 전체글 보기 </span>
+                    <a href="{% url 'search' %}?category=000">
+                        <img class="seemoreicon" src="../static/marketplace/assets/more.png">
+                        <span> 전체글 보기 </span>
+                    </a>
                 </div>
                 <div class="postdiv">
-                    <!-- 대충 글 목록 중 일부를 보여줌(리스트 형식도 괜찮을까?)-->
+                    <table border="1">
+                        <th style="width:10%;"></th><th style="width:10%;">플랫폼</th><th style="width:10%;">판매여부</th><th style="width:50%;">제목</th><th style="width:10%;">가격</th><th style="width:10%;"></th>
+                        {% for joonggo in joonggo_list %}
+                        <tr><!-- 첫번째 줄 시작 -->
+                            <td></td>
+                            <td class="platformtd">{{ joonggo.platform }}</td>
+                            {% if joonggo.issoldout == 1 %}
+                                <td class="issoldouttd">판매완료</td>
+                            {% elif joonggo.issoldout == 0 %}
+                                <td class="issoldouttd">판매중</td>
+                            {% endif %}
+                            <td class="titletd"><a href="{{ joonggo.url }}" class="url" target='_blank'>{{ joonggo.title }}</a></td>
+                            <td class="pricetd">{{ joonggo.price }}</td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </table>
                 </div>
             </div>
         </section>

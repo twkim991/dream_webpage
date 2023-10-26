@@ -6969,7 +6969,43 @@ header.masthead {
   height: 30vw;
   border: 10px solid black;
   border-radius: 20% / 40%;
+  overflow: auto;
+  -ms-overflow-style: none;
 }
+
+.postdiv::-webkit-scrollbar{
+  display:none;
+}
+
+table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 2vw;
+}
+
+td {
+  height: 2vw;
+}
+
+.platformtd {
+  width: 10%;
+}
+
+.issoldtd {
+  width: 10%;
+}
+
+.titletd {
+  width: 50%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space:nowrap;
+}
+
+.pricetd {
+  width: 10%;
+}
+
 
 .categorysection {
   margin-top: 5vw;
