@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.db import connection
-from .models import JoonggoData, JoonggoImg
+from Searcher import Searcher
 from .forms import KeywordForm
 
 def index(request):
@@ -44,7 +44,9 @@ def search(request):
             # db에서 중고거래 데이터를 가져온다
             try:
                 db = connection.cursor()
-                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE title LIKE '%{keyword}%' OR text LIKE '%{keyword}%' LIMIT 1000;"
+                id_list = Searcher.Search(connection,keyword) 
+                qry = f"""SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE url IN ({','.join("'" + str(i) + "'" for i in id_list)}) LIMIT 1000;"""
+                # print(qry)
                 db.execute(qry)
                 data = db.fetchall()
                 # print(data)

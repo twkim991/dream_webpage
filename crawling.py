@@ -1,12 +1,12 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
-import joblib
 import time
 import asyncio
 import pymysql
 import sys
 import re
+from sql import sql
 
 
 
@@ -28,22 +28,22 @@ driver = webdriver.Chrome(options=options)
 cnt = 0
 connect = None
 db = None
-# 저장된 모델 불러오기
-loaded_model = joblib.load('ad_checker.pkl')
-loaded_vectorizer = joblib.load('vectorizer.pkl')
 
 
 
 
 
 class WebPage:
-    def __init__(self,url,platform,issoldout,title,price,text):
+    def __init__(self,url,platform,issoldout,title,price,text,maincategory,subcategory):
         self.url = url
         self.platform = platform
         self.issoldout = issoldout
         self.title = title
         self.price = price
         self.text = text
+        self.maincategory = maincategory
+        self.subcategory = subcategory
+        self.mcnt=0
     
 
 
@@ -115,7 +115,18 @@ async def Collect(url, platform):
 
             rawimg = driver.find_elements(By.XPATH, '//*[contains(@class,"Productsstyle__ProductImageWrapper")]/div/div/img')
             imgs = [element.get_attribute('src') for element in rawimg]
-            return WebPage(url,platform,issoldout,title,price,text), imgs
+
+            try:
+                rawmaincategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()-1]/div/div/div[1]')
+                maincategory = rawmaincategory.text
+            except NoSuchElementException:
+                print("메인카테고리 없음")
+                maincategory = ''
+
+            rawsubcategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()]/div/div/div[1]')
+            subcategory = rawsubcategory.text
+
+            return WebPage(url,platform,issoldout,title,price,text,maincategory,subcategory), imgs
             # print(imgs)
         elif platform == 'joongna':
             #제목으로 이미 삭제된 상품인지 확인
@@ -148,6 +159,16 @@ async def Collect(url, platform):
                 text = [element.text for element in rawtext][0]
             # print(text)
 
+            try:
+                rawmaincategory = driver.find_element(By.XPATH, '//ol/li[3]/a')
+                maincategory = rawmaincategory.text
+            except NoSuchElementException:
+                print("메인카테고리 없음")
+                maincategory = ''
+
+            rawsubcategory = driver.find_element(By.XPATH, '//ol/li[5]/a')
+            subcategory = rawsubcategory.text
+
             rawimg = driver.find_elements(By.XPATH, '//div[contains(@class,"items-start")]//img')
             rawimgs = [element.get_attribute('src') for element in rawimg]
             imgs = []
@@ -155,7 +176,7 @@ async def Collect(url, platform):
                 if 'https://web.joongna.com/assets/' not in img:
                     imgs.append(img)
             # print(imgs)
-            return WebPage(url,platform,issoldout,title,price,text), imgs
+            return WebPage(url,platform,issoldout,title,price,text,maincategory,subcategory), imgs
     finally:
         print("\n\n데이터 수집 완료! 처리중...\n\n")
 
@@ -394,185 +415,52 @@ async def temp(conn):
 
 
 
-# DB를 조작하는 각종 함수들을 모아놓은 클래스
-class sql:
-    # 후보 링크들을 추가하는 함수
-    @staticmethod
-    def AddCandidate(conn, links, platform):
-        db = conn.cursor();
-        # print(links)
-        for url in links:
-            print(url)
-            # 후보 링크가 데이터 db에 있는지, 후보 db에 있는지 체크
-            if sql.CheckData(conn, 'joonggo_data', url)==0 or sql.CheckData(conn, 'candidate', url)==0:
-                continue
-            qry = f"INSERT INTO Candidate(url,platform) values('{url}', '{platform}')"
-            print(qry)
-            try:
-                db.execute(qry)
-                print(qry)
-            except:
-                print('ADDCANDIDATE ERROR')
-                return False
-        conn.commit()
-
-    # 후보에 있는 url의 페이지를 크롤링하기 위해 후보 db에서 가져오는 함수
-    @staticmethod
-    def GetCandidate(conn, start):
-        db = conn.cursor();
-        qry = f"SELECT url,platform,id FROM Candidate WHERE id>{start} LIMIT 1;"
-        db.execute(qry)
-        row = db.fetchone()
-        print(f"\n\n{row[2]}번 후보 데이터 수집 시작!")
-        if row:
-            return row[0], row[1]
-        else:
-            return "",""
-
-    @staticmethod
-    def DeleteCandidate(conn, url):
-        db = conn.cursor();
-        qry = f"DELETE FROM Candidate WHERE url='{url}';"
-        print(qry)
-        print(f"\n\n{url}데이터 수집 완료! 후보DB에서 삭제!")
-        db.execute(qry);
-        conn.commit();
-
-    # 크롤링한 페이지를 data db에 저장하는 함수
-    @staticmethod
-    def AddData(conn, data):
-        db = conn.cursor();
-        data.title = data.title.replace("'", "''")
-        data.title = data.title.replace('""', '""')
-        data.text = data.text.replace("'", "''")
-        data.text = data.text.replace('""', '""')
-        
-
-        # 샘플 데이터 예측하기
-        text1 = [data.text]
-        title1 = [data.title]
-        combined_text = [text + ' ' + title for text, title in zip(text1, title1)]
-        X_sample = loaded_vectorizer.transform(combined_text)
-        predictions = loaded_model.predict(X_sample.toarray())
-        isad = predictions[0]
-        qry = f"INSERT IGNORE INTO joonggo_data(url, platform, issoldout, title, price, text, isad) values('{data.url}', '{data.platform}', '{data.issoldout}', '{data.title}', '{data.price}', '{data.text}', {isad})"
-        # print(qry)
-        db.execute(qry)
-        conn.commit();
-
-    # 크롤링한 페이지를 data db에 저장하는 함수
-    @staticmethod
-    def AddImg(conn, url, imgs):
-        db = conn.cursor();
-        for img_url in imgs:
-            qry = f"INSERT IGNORE INTO joonggo_img(url, img_url) values('{url}', '{img_url}')"
-            print(qry)
-            db.execute(qry)
-        conn.commit();
-    
-    # 후보에 넣으려는 링크가 원하는 db에 있는지 체크하는 함수
-    @staticmethod
-    def CheckData(conn, dbname, url):
-        db = conn.cursor();
-        qry = f"SELECT url FROM {dbname} WHERE url = '{url}';"
-        db.execute(qry)
-        res = db.fetchone()
-        if res:
-            return 0
-        else:
-            return -1
-
-    # 팔렸는지 안팔렸는지 체크하기 위해서 데이터 가져오는 함수
-    @staticmethod
-    def GetData(conn):
-        db = conn.cursor();
-        qry = f"SELECT url,platform FROM joonggo_data WHERE issoldout = 0 LIMIT 10"
-        db.execute(qry)
-        rows = db.fetchall()
-        print(rows)
-        print(f"\n\n{len(rows)}개의 데이터를 DB에서 가져와 검수 시작")
-        if rows:
-            return rows
-        else:
-            return ""
-
-    # issoldout 수정
-    @staticmethod
-    def UpdateIssoldout(conn, url, issoldout):
-        db = conn.cursor();
-        qry = f"UPDATE joonggo_data SET issoldout = '{issoldout}' WHERE url = '{url}'"
-        db.execute(qry)
-        conn.commit()
-        print(f"\n\n{url}은 현재는 팔린 상태입니다.")
-
-    # 카테고리 추가하려고 데이터 가져오는 함수
-    @staticmethod
-    def tempsql(conn):
-        db = conn.cursor();
-        qry = f"SELECT id,url,platform FROM joonggo_data WHERE maincategory IS NULL AND id>34500 LIMIT 1;"
-        db.execute(qry)
-        row = db.fetchone()
-        print(row)
-        if row:
-            return row[0], row[1], row[2]
-        else:
-            return "", ""
-        
-    # 카테고리 추가하는 함수
-    @staticmethod
-    def tempsql2(conn, id, maincategory, subcategory):
-        db = conn.cursor();
-        qry = f"UPDATE dream_joonggo.joonggo_data SET maincategory = '{maincategory}', subcategory = '{subcategory}' WHERE id = {id};"
-        print(qry)
-        db.execute(qry)
-        conn.commit()
 
 
 
 
+# # 카테고리 데이터를 수집하는 함수
+# async def temp2(conn):
+#     for i in range(100000000):
+#         id,url,platform = sql.tempsql(conn)
+#         if url == '':
+#             break;
+#         # print(url,platform)
+#         mainct, subct = await temp2_2(url, platform)
+#         sql.tempsql2(conn, id, mainct, subct)
 
-# 카테고리 데이터를 수집하는 함수
-async def temp2(conn):
-    for i in range(100000000):
-        id,url,platform = sql.tempsql(conn)
-        if url == '':
-            break;
-        # print(url,platform)
-        mainct, subct = await temp2_2(url, platform)
-        sql.tempsql2(conn, id, mainct, subct)
+# async def temp2_2(url, platform):
+#     try:
+#         driver.get(url)
+#         await asyncio.sleep(3)
 
-async def temp2_2(url, platform):
-    try:
-        driver.get(url)
-        await asyncio.sleep(3)
+#         웹 페이지가 로드될 때까지 대기
+#         driver.implicitly_wait(10)
 
-        # 웹 페이지가 로드될 때까지 대기
-        driver.implicitly_wait(10)
+#         if platform == 'bunjang':
+#             데이터 수집
+#             try:
+#                 rawmaincategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()-1]/div/div/div[1]')
+#                 maincategory = rawmaincategory.text
+#             except NoSuchElementException:
+#                 return "", ""
 
-        if platform == 'bunjang':
-            # 데이터 수집
-            try:
-                rawmaincategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()-1]/div/div/div[1]')
-                maincategory = rawmaincategory.text
-            except NoSuchElementException:
-                return "", ""
+#             rawsubcategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()]/div/div/div[1]')
+#             subcategory = rawsubcategory.text
+#             print(maincategory, subcategory)
+#             return maincategory, subcategory
+#         elif platform == 'joongna':
+#             try:
+#                 rawmaincategory = driver.find_element(By.XPATH, '//ol/li[3]/a')
+#                 maincategory = rawmaincategory.text
+#             except NoSuchElementException:
+#                 return "", ""
 
-            rawsubcategory = driver.find_element(By.XPATH, '//*[contains(@class,"Productsstyle__CategoryNavigationWrapper")]/div/div[last()]/div/div/div[1]')
-            subcategory = rawsubcategory.text
-            print(maincategory, subcategory)
-            return maincategory, subcategory
-        elif platform == 'joongna':
-            try:
-                rawmaincategory = driver.find_element(By.XPATH, '//ol/li[3]/a')
-                maincategory = rawmaincategory.text
-            except NoSuchElementException:
-                return "", ""
-
-            rawsubcategory = driver.find_element(By.XPATH, '//ol/li[5]/a')
-            subcategory = rawsubcategory.text
-            return maincategory, subcategory
-    finally:
-        print("\n\n데이터 수집 완료! 처리중...\n\n")
+#             rawsubcategory = driver.find_element(By.XPATH, '//ol/li[5]/a')
+#             subcategory = rawsubcategory.text
+#             return maincategory, subcategory
+#     finally:
+#         print("\n\n데이터 수집 완료! 처리중...\n\n")
 
 
 
@@ -600,7 +488,7 @@ async def run():
         elif sys.argv[1] == 'check':
             await CheckIssoldout(connect)
         elif sys.argv[1] == 'test':
-            await temp2(connect)
+            print("몰루")
     finally:
         # WebDriver 종료
         driver.quit()
