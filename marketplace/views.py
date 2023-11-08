@@ -45,11 +45,12 @@ def search(request):
             try:
                 db = connection.cursor()
                 id_list = Searcher.Search(connection,keyword) 
-                qry = f"""SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE url IN ({','.join("'" + str(i) + "'" for i in id_list)}) LIMIT 1000;"""
+                # print(id_list[0])
+                qry = f"""SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE url IN ({','.join("'" + str(i) + "'" for i in id_list)}) ORDER BY FIELD (url,{','.join("'" + str(i) + "'" for i in id_list)}) LIMIT 1000;"""
                 # print(qry)
                 db.execute(qry)
                 data = db.fetchall()
-                # print(data)
+                # print(data[0])
                 connection.close()
 
                 # 여기에 이미지 정보도 같이 가져와야한다.

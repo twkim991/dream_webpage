@@ -1,13 +1,14 @@
 
+
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f2f2f2;
+    background-color: white;
+    min-height: 100%;
 }
 
 .container {
-    max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
 }
 
 .row {
@@ -18,24 +19,67 @@ h1 {
     color: #333333;
 }
 
-ul {
-    list-style-type: none;
-    margin-bottom: 10px;
+.ul {
+    margin-bottom: 2vw;
     padding-left: 0;
+    border-color: #CCCCCC;
     border-style: solid;
     border-radius: 10px;
+    width: 95vw;
+    height: 30vw;
 }
 
-li {
-    margin-bottom: 5px;
-}
-
-.url {
-    color: blue;
+.ultopdiv {
+    width: 100%;
+    display: flex;
+    position: relative;
+    height: 8vw;
+    margin-bottom: 2vw;
 }
 
 .platform {
+    width: 10%;
     font-weight: bold;
+}
+
+.bunjangicon {
+    filter: invert(21%) sepia(43%) saturate(7425%) hue-rotate(336deg) brightness(74%) contrast(147%);
+    width: 8vw;
+    height: 8vw;
+}
+
+.joongnaicon {
+    filter: invert(48%) sepia(91%) saturate(1938%) hue-rotate(343deg) brightness(95%) contrast(94%);
+    width: 8vw;
+    height: 8vw;
+}
+
+.titlediv {
+    display: flex;
+    width: 70%;
+    align-items: center;
+}
+
+.url {
+    font-size: 4vw;
+    color:#555555; 
+    font-weight:bold; 
+    overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+    text-decoration-line: none;
+}
+
+.price{
+    display: flex;
+    width: 20%;
+    color:#009900; 
+    font-weight:bold;
+    font-size: 3.5vw;
+    justify-content: center;
+    align-items: center;
+    text-decoration: underline;
+    text-decoration-thickness: 0.5vw;
 }
 
 .sold-out {
@@ -43,74 +87,102 @@ li {
     font-weight:bold; 
 }
 
-.title{
-    font-size : 18px; 
-    color:#555555; 
-    font-weight:bold; 
+.ulbottomdiv {
+    width: 100%;
+    display: flex;
+    height: 20vw;
 }
 
-.price{
-    color:#009900; 
-    font-weight:bold;  
+.imgs {
+    display: flex;
+    width: 30vw;
+}
+
+.headimg {
+    width: 20vw;
+    height: 100%;
+}
+
+.headimg img {
+    width: 20vw;
+    height: 20vw;
+    border-top: 0.2vw solid black;
+}
+
+.imgmore, .imgmore2 {
+    display: flex;
+    width: 5vw;
+    background-color: #b5b5b5;
+    justify-content: center;
+    align-items: center;
+    border: 0.2vw solid black;
+}
+
+.textdiv {
+    margin-left: 2.5vw;
+    margin-right: 2.5vw;
+    width: 60vw;
+    height: 100%;
+    text-overflow: ellipsis;
+    overflow-x: hidden;
+    overflow-y: scroll;
 }
 
 .text{
-    margin-top :5px ;
+    width: 60wv;
+    display: block;
     line-height :1.4em ;
+    font-size: 1.5vw;
 }   
 
-.btn {
-    --bs-btn-padding-x: 1rem;
-    --bs-btn-padding-y: 0.75rem;
-    --bs-btn-font-family: ;
-    --bs-btn-font-size: 1rem;
-    --bs-btn-font-weight: 400;
-    --bs-btn-line-height: 1.5;
-    --bs-btn-color: #212529;
-    --bs-btn-bg: transparent;
-    --bs-btn-border-width: 1px;
-    --bs-btn-border-color: transparent;
-    --bs-btn-border-radius: 0.375rem;
-    --bs-btn-hover-border-color: transparent;
-    --bs-btn-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 1px rgba(0, 0, 0, 0.075);
-    --bs-btn-disabled-opacity: 0.65;
-    --bs-btn-focus-box-shadow: 0 0 0 0.25rem rgba(var(--bs-btn-focus-shadow-rgb), .5);
-    display: inline-block;
-    padding: var(--bs-btn-padding-y) var(--bs-btn-padding-x);
-    font-family: var(--bs-btn-font-family);
-    font-size: var(--bs-btn-font-size);
-    font-weight: var(--bs-btn-font-weight);
-    line-height: var(--bs-btn-line-height);
-    color: var(--bs-btn-color);
+.searchdiv{
     text-align: center;
-    text-decoration: none;
-    vertical-align: middle;
-    cursor: pointer;
-    -webkit-user-select: none;
-       -moz-user-select: none;
-            user-select: none;
-    border: var(--bs-btn-border-width) solid var(--bs-btn-border-color);
-    border-radius: var(--bs-btn-border-radius);
-    background-color: var(--bs-btn-bg);
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    margin:auto;
+    width: 100%;
+    height: 8vw;
+    display: flex;
+}
+
+.inputdiv {
+    height: 100%;
+    width: 50vw;
+    margin-left: 22vw;
+}
+
+.form-control {
+    display :inline-block;
+    width: 48vw;
+    height: 6vw;
+    font-size: 3vw;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1vw solid #ced4da;
+    -webkit-appearance: none;
+       -moz-appearance: none;
+            appearance: none;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
 
-.btn-primary {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: #0d6efd;
-    --bs-btn-border-color: #0d6efd;
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: #0b5ed7;
-    --bs-btn-hover-border-color: #0a58ca;
-    --bs-btn-focus-shadow-rgb: 49, 132, 253;
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: #0a58ca;
-    --bs-btn-active-border-color: #0a53be;
-    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: #0d6efd;
-    --bs-btn-disabled-border-color: #0d6efd;
+  .submitdiv {
+    width: 8vw;
+    height: 8vw;
+    margin-left: 1vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
+
+.submiticon {
+    cursor: pointer;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    width: 6vw;
+    height: 6vw;
+  }
+
 
 /* Toggle Button Styles */
 #toggleButton {
@@ -135,39 +207,16 @@ li {
     color:white ;    
 }  
 
-.searchdiv{
-    text-align: center;
-    margin:auto;
-    width: 50%
-}
-
-.form-control {
-    display :inline-block;
-    width: 80%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-weight: 400;
-    line-height: 1.5;
-    color: #212529;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid #ced4da;
-    -webkit-appearance: none;
-       -moz-appearance: none;
-            appearance: none;
-    border-radius: 0.375rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  }
-
 .filterdiv {
-    max-width: 800px;
     margin: 0 auto;
+    margin-bottom: 10vw;
 
 }
 .pagination {
     display: flex;
     justify-content: center;
     margin-top: 10px;
+    margin-bottom: 150vw;
   }
 .pagination a {
     display: inline-flex; /* 수정된 부분 */

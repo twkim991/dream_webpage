@@ -15,6 +15,7 @@
         <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css" />
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="/static/marketplace/css/styles.css" rel="stylesheet" />
+        <link href="https://webfontworld.github.io/gmarket/GmarketSans.css" rel="stylesheet">
     </head>
     <body>
         <!-- Masthead-->
@@ -31,7 +32,7 @@
                 <form action="{% url 'search' %}" method="POST">
                     {% csrf_token %}
                     <div class="searchdiv">
-                        <div class="searchbutton"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">검색</button></div>
+                        <!-- <div class="searchbutton"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">검색</button></div> -->
                         <div class="searchinputdiv">
                             <input class="form-control form-control-lg" id="keyword" name = "keyword" type="text" placeholder="Search" data-sb-validations="required,email" />
                         </div>
@@ -42,15 +43,15 @@
         <!-- Post Grid-->
         <section>
             <div class="container">
-                <div>
+                <div class="seemorediv">
                     <a href="{% url 'search' %}?category=000">
                         <img class="seemoreicon" src="../static/marketplace/assets/more.png">
-                        <span> 전체글 보기 </span>
+                        <div> 전체글 보기 </div>
                     </a>
                 </div>
                 <div class="postdiv">
                     <table border="1">
-                        <th style="width:10%;"></th><th style="width:10%;">플랫폼</th><th style="width:10%;">판매여부</th><th style="width:50%;">제목</th><th style="width:10%;">가격</th><th style="width:10%;"></th>
+                        <th style="width:10%;"></th><th style="width:10%; text-align: right;">플랫폼</th><th style="width:14%;">판매여부</th><th style="width:46%;">제목</th><th style="width:10%;text-align: left;">가격</th><th style="width:10%;"></th>
                         {% for joonggo in joonggo_list %}
                         <tr><!-- 첫번째 줄 시작 -->
                             <td></td>

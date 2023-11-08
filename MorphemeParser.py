@@ -33,6 +33,10 @@ class MorphemeParser:
         #원본 문자열에 특수 기호를 제거 및 공백 기준으로 분리
         src = RemoveHtmlSpecialCh(src)
         msrc = src.split(' ')
+        total = ''
+        for i in msrc:
+            total = total + i
+        msrc.insert(0,total)
         #각 단어를 형태소 컬렉션에 추가
         for elem in msrc:
             morphes.append(Morpheme(elem))
