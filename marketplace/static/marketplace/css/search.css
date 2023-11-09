@@ -212,6 +212,21 @@ h1 {
     margin-bottom: 10vw;
 
 }
+
+.reorderbutton_on {
+    background-color:#007BFF ;  
+    border-color:#007BFF ;   
+    color:white ; 
+    cursor: pointer;
+}
+
+.reorderbutton_off {
+    background-color:#CCCCCC ;  
+    border-color:#999999 ;   
+    color:#333333 ;    
+    cursor: pointer;
+}
+
 .pagination {
     display: flex;
     justify-content: center;

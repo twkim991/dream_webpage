@@ -29,8 +29,7 @@
                 </div>
             </div>
             <div>
-                <form action="{% url 'search' %}" method="POST">
-                    {% csrf_token %}
+                <form action="{% url 'search' %}" method="GET">
                     <div class="searchdiv">
                         <!-- <div class="searchbutton"><button class="btn btn-primary btn-lg" id="submitButton" type="submit">검색</button></div> -->
                         <div class="searchinputdiv">
