@@ -45,12 +45,12 @@ def search(request):
             try:
                 db = connection.cursor()
                 id_list = Searcher.Search(connection,keyword) 
-                # print(id_list[0])
-                qry = f"""SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE url IN ({','.join("'" + str(i) + "'" for i in id_list)}) ORDER BY FIELD (url,{','.join("'" + str(i) + "'" for i in id_list)}) LIMIT 1000;"""
+                print(id_list[0].url)
+                qry = f"""SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE url IN ({','.join("'" + str(i.url) + "'" for i in id_list)}) ORDER BY id LIMIT 1000;"""
                 # print(qry)
                 db.execute(qry)
                 data = db.fetchall()
-                # print(data[0])
+                print(data[0][0])
                 connection.close()
 
                 # 여기에 이미지 정보도 같이 가져와야한다.
@@ -76,18 +76,24 @@ def search(request):
 
                 # print(imgdata_dict)
 
-                for res in data:
-                    url = res[0]
-                    # print(imgdata_dict.get(url, []))
-                    row = {'url': url,
-                        'platform': res[1],
-                        'issoldout': res[2],
-                        'title': res[3],
-                        'price': res[4],
-                        'text': res[5],
-                        'isad': res[6],
-                        'imgurl': imgdata_dict.get(url, [])}
-                    joonggo.append(row)
+                for dict2 in data:
+                    for dict1 in id_list:
+                        if dict1.url == dict2[0]:
+                            merged_dict = {
+                                'url': dict2[0],
+                                'platform': dict2[1],
+                                'title' : dict2[3],
+                                'price' : dict2[4],
+                                'text' : dict2[5],
+                                'isad' : dict2[6],
+                                'issoldout' : dict2[2],
+                                'score' : dict1.score,
+                                'imgurl': imgdata_dict.get(dict2[0],[])
+                            }
+                            joonggo.append(merged_dict)
+
+                print(joonggo[0])
+
             except Exception as err:
                 connection.rollback()
                 print("에러 발생")
@@ -121,9 +127,9 @@ def search(request):
         try:
             db = connection.cursor()
             if category == 'all':
-                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data LIMIT 1000;"
+                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data ORDER BY id LIMIT 1000;"
             else:
-                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE maincategory = '{category}' OR subcategory = '{category}' LIMIT 1000;"
+                qry = f"SELECT url, platform, issoldout, title, price, text, isad FROM dream_joonggo.joonggo_data WHERE maincategory = '{category}' OR subcategory = '{category}' ORDER BY id LIMIT 1000;"
             db.execute(qry)
             data = db.fetchall()
             # print(data)

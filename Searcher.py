@@ -53,10 +53,7 @@ class Searcher:
             if flag == False:
                 res.append(sw)
         res = sorted(res)
-        realres = list()
-        for i in res:
-            realres.append(i.url)
-        return realres
+        return res
     
 
 # async def run():
