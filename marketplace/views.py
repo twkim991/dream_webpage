@@ -3,6 +3,7 @@ from django.db import connection
 from Searcher import Searcher
 from .forms import KeywordForm
 from django.core.cache import cache
+from django.http import JsonResponse
 
 def index(request):
     joonggo = []
@@ -254,12 +255,15 @@ def reorder(request):
         return render(request, 'search.html', {'joonggo_list': joonggo})
     # 이외에는 캐시 데이터를 가져와서 정렬만 한다.
     else:
-        sort_option = request.GET.get('sort', 'id')
-        sort_option2 = request.GET.get('sort2', 'ASCENDING')
-        if sort_option2 == 'ASCENDING':
+        sort_option = request.POST.get('sort', 'id')
+        sort_option2 = request.POST.get('sort2', '오름차순')
+        print(sort_option, sort_option2)
+        if sort_option2 == '오름차순':
             joonggo = sorted(not_sorted, key=lambda x: x[f'{sort_option}'])
-        elif sort_option2 == 'DESCENDING':
+        elif sort_option2 == '내림차순':
             joonggo = sorted(not_sorted, key=lambda x: x[f'{sort_option}'], reverse=True)
         
         # print(joonggo[0])
-        return render(request, 'search.html', {'joonggo_list': joonggo})
+        context = {'joonggo_list': joonggo}
+        # 정렬만 해서 ajax로 전송
+        return JsonResponse(context)

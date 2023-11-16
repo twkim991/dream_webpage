@@ -11,9 +11,12 @@
     <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css" />
     <link href="/static/marketplace/css/search.css?after" rel="stylesheet" />
     <link href="https://webfontworld.github.io/gmarket/GmarketSans.css" rel="stylesheet">
+    
 </head>
 
 <body>
+<script src="http://code.jquery.com/jquery-latest.js"></script> 
+<link rel="shortcut icon" href="#">
 <form action="{% url 'search' %}" method="GET">
     <div class="row">
         <div class="searchdiv">
@@ -30,9 +33,9 @@
         <button id= "adtoggleButton" class= "w-btn w-btn-gray button-off" onclick = "adfilterButton()">광고글 제외</button>  
         <button id= "soldouttoggleButton" class= "w-btn w-btn-gray button-off" onclick = "soldoutfilterButton()">판매완료 제외</button>    
         <div style="display: flex;">
-            <div class="reorderbutton_on reorder_id" onclick="reordering('id')">최신순</div>
-            <div class="reorderbutton_off reorder_score" onclick="reordering('score')">정확도순</div>
-            <div class="reorderbutton_off reorder_price" onclick="reordering('price')">가격순</div>
+            <div class="reorderbutton_on reorder_id" data-key="id" onclick="reordering('id')">최신순</div>
+            <div class="reorderbutton_off reorder_score" data-key="score" onclick="reordering('score')">정확도순</div>
+            <div class="reorderbutton_off reorder_price" data-key="price" onclick="reordering('price')">가격순</div>
             <div class="reorderbutton_off recendingbutton" onclick="recending()">오름차순</div>
         </div>
     </div>
@@ -41,9 +44,9 @@
             <div class="ultopdiv">
                 <div class="platform">
                     {% if joonggo.platform == 'bunjang' %}
-                        <img class="bunjangicon" src="../static/marketplace/assets/번개장터.svg" decoding="async" loading="lazy" width="100" height="100">
+                        <img class="platformicon bunjangicon" src="../static/marketplace/assets/번개장터.svg" decoding="async" loading="lazy" width="100" height="100">
                     {% elif joonggo.platform == 'joongna' %}
-                        <img class="joongnaicon" src="../static/marketplace/assets/중고나라.svg" decoding="async" loading="lazy" width="100" height="100">
+                        <img class="platformicon joongnaicon" src="../static/marketplace/assets/중고나라.svg" decoding="async" loading="lazy" width="100" height="100">
                     {% endif %}
                 </div>
 
@@ -93,10 +96,26 @@
 </body>
 <script type = 'text/javascript'>
     // console.log('{{ joonggo_list }}');
+    //csrf token
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+    
     function adfilterButton() {
-        
-        var temp = document.querySelectorAll('.container .ul:not([data-check="1"])').length
-        console.log(temp)
         var button = document.getElementById('adtoggleButton');
         button.classList.toggle('button-on'); // 'button-on' 클래스 토글
         button.classList.toggle('w-btn-blue');
@@ -107,22 +126,24 @@
         totalPosts = document.querySelectorAll('.container .ul:not([data-check="1"])').length;
         totalPages = Math.ceil(totalPosts / postsPerPage);
         init();
+
+        var temp = document.querySelectorAll('.container .ul:not([data-check="1"])').length
+        console.log(temp)
     }
 
     function soldoutfilterButton() {
-        var temp = document.querySelectorAll('.container .ul:not([data-check="1"])').length
-        console.log(temp)
         var button = document.getElementById('soldouttoggleButton');
         button.classList.toggle('button-on'); // 'button-on' 클래스 토글
         button.classList.toggle('w-btn-blue');
         button.classList.toggle('w-btn-gray');
-
         filtering();
 
         totalPosts = document.querySelectorAll('.container .ul:not([data-check="1"])').length;
         totalPages = Math.ceil(totalPosts / postsPerPage);
         init();
             
+        var temp = document.querySelectorAll('.container .ul:not([data-check="1"])').length
+        console.log(temp)
     }
 
     function filtering() {
@@ -180,60 +201,140 @@
 
     function reordering(key) {
         var currentUrl = window.location.href;
-        var newUrl;
+        var baseUrl = currentUrl.split('?')[0]; // 변수 부분이 시작되기 전 URL 부분
+        var newUrl = baseUrl + 'ordered?' + currentUrl.split('?')[1];
+        var sort2 = document.querySelector('.recendingbutton').textContent
+        $.ajax({
+            url: newUrl,
+            type: 'POST',
+            data: {
+                sort: key,
+                sort2: sort2
+            },
+            dataType: 'json',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(data){
+                console.log(data)
+                $('.ul').each(function (index) {
+                    var joonggo = data.joonggo_list[index];
+                    // console.log(joonggo)
+                    var ulDiv = $(this);
+                    if (joonggo.platform === 'bunjang') {
+                        ulDiv.find('.platformicon').attr('src', '../static/marketplace/assets/번개장터.svg');
+                        ulDiv.find('.platformicon').addClass('bunjangicon');
+                        ulDiv.find('.platformicon').removeClass('joongnaicon');
+                    } else if (joonggo.platform === 'joongna') {
+                        ulDiv.find('.platformicon').attr('src', '../static/marketplace/assets/중고나라.svg');
+                        ulDiv.find('.platformicon').addClass('joongnaicon');
+                        ulDiv.find('.platformicon').removeClass('bunjangicon');
+                    }
+                    ulDiv.find('.url').attr('href', joonggo.url).text(joonggo.title);
+                    ulDiv.find('.price').text(joonggo.price + ' 원');
+                    ulDiv.find('.headimg img').attr('src', joonggo.imgurl[0]);
+                    ulDiv.find('.imgmore2').text('(' + (joonggo.imgurl).length + ')');
+                    ulDiv.find('.text').html(joonggo.text.replace(/\n/g, '<br>'));
+                    ulDiv.find('.isad').text(joonggo.isad);
+                    ulDiv.find('.issoldout').text(joonggo.issoldout);
+                    ulDiv.find('.score').text(joonggo.score);
+                });
+                
+                var button_id = document.querySelector('.reorder_id')
+                var button_score = document.querySelector('.reorder_score')
+                var button_price = document.querySelector('.reorder_price')
+                if (key === 'id') {
+                    button_id.classList.remove('reorderbutton_off');
+                    button_id.classList.add('reorderbutton_on');
+                    button_score.classList.remove('reorderbutton_on');
+                    button_score.classList.add('reorderbutton_off');
+                    button_price.classList.remove('reorderbutton_on');
+                    button_price.classList.add('reorderbutton_off');
+                }
+                else if (key === 'score') {
+                    button_score.classList.remove('reorderbutton_off');
+                    button_score.classList.add('reorderbutton_on');
+                    button_id.classList.remove('reorderbutton_on');
+                    button_id.classList.add('reorderbutton_off');
+                    button_price.classList.remove('reorderbutton_on');
+                    button_price.classList.add('reorderbutton_off');
+                }
+                else if (key === 'price') {
+                    button_price.classList.remove('reorderbutton_off');
+                    button_price.classList.add('reorderbutton_on');
+                    button_score.classList.remove('reorderbutton_on');
+                    button_score.classList.add('reorderbutton_off');
+                    button_id.classList.remove('reorderbutton_on');
+                    button_id.classList.add('reorderbutton_off');
+                }
+                filtering();
 
-        // '/ordered'가 포함되어 있는지 확인
-        if (currentUrl.includes('/ordered')) {
-            // '/ordered'가 포함되어 있으면 현재 URL 유지
-            newUrl = currentUrl;
-        } else {
-            // '/ordered'가 포함되어 있지 않으면 변수 부분이 시작되기 전 부분에 추가하여 새 URL 생성
-            var baseUrl = currentUrl.split('?')[0]; // 변수 부분이 시작되기 전 URL 부분
-            newUrl = baseUrl + 'ordered?' + currentUrl.split('?')[1];
-        }
-
-        // key 변수의 값을 가져와서 있으면 지우고 새로넣고 없으면 그냥 새로넣음
-        var urlParams = new URLSearchParams(window.location.search);
-        var nowkey = urlParams.get(`sort`);
-        if (nowkey) {
-            newUrl = newUrl.replace(`sort=${nowkey}`, `sort=${key}`);
-        } else {
-            newUrl = newUrl + (newUrl.includes('?') ? '&' : '?') + `sort=${key}`;
-        }
-        //버튼 색깔을 바꿔준다
-        // 생성된 URL로 페이지를 이동합니다.
-        // console.log(newUrl)
-        window.location.href = newUrl;
+                totalPosts = document.querySelectorAll('.container .ul:not([data-check="1"])').length;
+                totalPages = Math.ceil(totalPosts / postsPerPage);
+                init();
+            }
+        })
     }
 
     function recending() {
         var currentUrl = window.location.href;
-        var newUrl;
+        var baseUrl = currentUrl.split('?')[0]; // 변수 부분이 시작되기 전 URL 부분
+        var newUrl = baseUrl + 'ordered?' + currentUrl.split('?')[1];
 
-        // '/ordered'가 포함되어 있는지 확인
-        if (currentUrl.includes('/ordered')) {
-            // '/ordered'가 포함되어 있으면 현재 URL 유지
-            newUrl = currentUrl;
-        } else {
-            // '/ordered'가 포함되어 있지 않으면 변수 부분이 시작되기 전 부분에 추가하여 새 URL 생성
-            var baseUrl = currentUrl.split('?')[0]; // 변수 부분이 시작되기 전 URL 부분
-            newUrl = baseUrl + 'ordered?' + currentUrl.split('?')[1];
+        var sort = document.querySelector('.reorderbutton_on').dataset.key
+        var sort2 = document.querySelector('.recendingbutton').textContent
+        if(sort2 === '오름차순'){
+            document.querySelector('.recendingbutton').innerText = '내림차순'
+            sort2 = '내림차순'
+        } else if(sort2 === '내림차순') {
+            document.querySelector('.recendingbutton').innerText = '오름차순'
+            sort2 = '오름차순'
         }
 
-        // key 변수의 값을 가져와서 있으면 지우고 새로넣고 없으면 그냥 새로넣음
-        var urlParams = new URLSearchParams(window.location.search);
-        var nowkey = urlParams.get(`sort2`);
-        if (nowkey) {
-            if (nowkey === 'ASCENDING'){
-                newUrl = newUrl.replace(`sort2=${nowkey}`, `sort2=DESCENDING`);
-            }else if (nowkey === 'DESCENDING'){
-                newUrl = newUrl.replace(`sort2=${nowkey}`, `sort2=ASCENDING`);
+        $.ajax({
+            url: newUrl,
+            type: 'POST',
+            data: {
+                sort: sort,
+                sort2: sort2
+            },
+            dataType: 'json',
+            headers: {
+                'X-CSRFToken': csrftoken
+            },
+            success: function(data){
+                console.log(data)
+                $('.ul').each(function (index) {
+                    var joonggo = data.joonggo_list[index];
+                    // console.log(joonggo)
+                    var ulDiv = $(this);
+                    if (joonggo.platform === 'bunjang') {
+                        ulDiv.find('.platformicon').attr('src', '../static/marketplace/assets/번개장터.svg');
+                        ulDiv.find('.platformicon').addClass('bunjangicon');
+                        ulDiv.find('.platformicon').removeClass('joongnaicon');
+                    } else if (joonggo.platform === 'joongna') {
+                        ulDiv.find('.platformicon').attr('src', '../static/marketplace/assets/중고나라.svg');
+                        ulDiv.find('.platformicon').addClass('joongnaicon');
+                        ulDiv.find('.platformicon').removeClass('bunjangicon');
+                    }
+                    ulDiv.find('.url').attr('href', joonggo.url).text(joonggo.title);
+                    ulDiv.find('.price').text(joonggo.price + ' 원');
+                    ulDiv.find('.headimg img').attr('src', joonggo.imgurl[0]);
+                    ulDiv.find('.imgmore2').text('(' + (joonggo.imgurl).length + ')');
+                    ulDiv.find('.text').html(joonggo.text.replace(/\n/g, '<br>'));
+                    ulDiv.find('.isad').text(joonggo.isad);
+                    ulDiv.find('.issoldout').text(joonggo.issoldout);
+                    ulDiv.find('.score').text(joonggo.score);
+                });
+                
+                filtering();
+
+                totalPosts = document.querySelectorAll('.container .ul:not([data-check="1"])').length;
+                totalPages = Math.ceil(totalPosts / postsPerPage);
+                init();
             }
-        } else {
-            newUrl = newUrl + (newUrl.includes('?') ? '&' : '?') + `sort2=DESCENDING`;
-        }
-        // 생성된 URL로 페이지를 이동합니다.
-        window.location.href = newUrl;
+        })
+        
     }
 
     
@@ -294,44 +395,6 @@
                 link.classList.remove('active'); 
             }
         });
-        var urlParams = new URLSearchParams(window.location.search);
-        var sort2 = urlParams.get(`sort2`);
-        if (sort2) {
-            if(sort2 === 'DESCENDING'){
-            document.querySelector('.recendingbutton').innerText = '내림차순'
-            }
-
-        }
-        var sort = urlParams.get(`sort`);
-        if (sort) {
-            var button_id = document.querySelector('.reorder_id')
-            var button_score = document.querySelector('.reorder_score')
-            var button_price = document.querySelector('.reorder_price')
-            if (sort === 'id') {
-                button_id.classList.remove('reorderbutton_off');
-                button_id.classList.add('reorderbutton_on');
-                button_score.classList.remove('reorderbutton_on');
-                button_score.classList.add('reorderbutton_off');
-                button_price.classList.remove('reorderbutton_on');
-                button_price.classList.add('reorderbutton_off');
-            }
-            else if (sort === 'score') {
-                button_score.classList.remove('reorderbutton_off');
-                button_score.classList.add('reorderbutton_on');
-                button_id.classList.remove('reorderbutton_on');
-                button_id.classList.add('reorderbutton_off');
-                button_price.classList.remove('reorderbutton_on');
-                button_price.classList.add('reorderbutton_off');
-            }
-            else if (sort === 'price') {
-                button_price.classList.remove('reorderbutton_off');
-                button_price.classList.add('reorderbutton_on');
-                button_score.classList.remove('reorderbutton_on');
-                button_score.classList.add('reorderbutton_off');
-                button_id.classList.remove('reorderbutton_on');
-                button_id.classList.add('reorderbutton_off');
-            }
-        }
     }
 
 
