@@ -42,8 +42,6 @@ INSTALLED_APPS = [
     "mysite",
     "marketplace",
     "rest_framework",
-    'debug_toolbar',
-    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
